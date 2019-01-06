@@ -18,6 +18,7 @@ Gun.on('opt', function(root){
 	opt.WebSocket = websocket;
 
 	var mesh = opt.mesh = opt.mesh || Gun.Mesh(root);
+	var reconnectflag = false;
 
 	var wire = opt.wire;
 	opt.wire = open;
@@ -38,6 +39,10 @@ Gun.on('opt', function(root){
 		};
 		wire.onopen = function(){
 			opt.mesh.hi(peer);
+			if(reconnectflag) {
+				root.on('resync');
+			}
+			reconnectflag = false;
 		}
 		wire.onmessage = function(msg){
 			if(!msg){ return }
@@ -47,6 +52,7 @@ Gun.on('opt', function(root){
 	}catch(e){}}
 
 	function reconnect(peer){
+		reconnectflag = true;
 		clearTimeout(peer.defer);
 		peer.defer = setTimeout(function(){
 			open(peer);
