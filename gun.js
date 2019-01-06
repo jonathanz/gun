@@ -1795,20 +1795,30 @@
 			if(root.once){ return ev.next(root) }
 			//if(false === opt.localStorage){ return ev.next(root) } // we want offline resynce queue regardless!
 			opt.prefix = opt.file || 'gun/';
-			var gap = Gun.obj.ify(store.getItem('gap/'+opt.prefix)) || {};
+			var gap;
 			var empty = Gun.obj.empty, id, to, go;
 			// add re-sync command.
-			if(!empty(gap)){
-				var disk = Gun.obj.ify(store.getItem(opt.prefix)) || {}, send = {};
-				Gun.obj.map(gap, function(node, soul){
-					Gun.obj.map(node, function(val, key){
-						send[soul] = Gun.state.to(disk[soul], key, send[soul]);
+
+			function sync(){
+				gap = Gun.obj.ify(store.getItem('gap/'+opt.prefix)) || {};
+				if(!empty(gap)){
+					var disk = Gun.obj.ify(store.getItem(opt.prefix)) || {}, send = {};
+					Gun.obj.map(gap, function(node, soul){
+						Gun.obj.map(node, function(val, key){
+							send[soul] = Gun.state.to(disk[soul], key, send[soul]);
+						});
 					});
-				});
-				setTimeout(function(){
-					root.on('out', {put: send, '#': root.ask(ack), I: root.$});
-				},1);
+					setTimeout(function(){
+						root.on('out', {put: send, '#': root.ask(ack), I: root.$});
+					},1);
+				}
 			}
+			
+			sync();
+		
+			root.on('resync', function(){
+				sync();
+			});
 
 			root.on('out', function(msg){
 				if(msg.lS){ return }
@@ -2177,6 +2187,7 @@
 			opt.WebSocket = websocket;
 
 			var mesh = opt.mesh = opt.mesh || Gun.Mesh(root);
+			var reconnectflag = false;
 
 			var wire = opt.wire;
 			opt.wire = open;
@@ -2197,6 +2208,10 @@
 				};
 				wire.onopen = function(){
 					opt.mesh.hi(peer);
+					if(reconnectflag) {
+						root.on('resync');
+					}
+					reconnectflag = false;					
 				}
 				wire.onmessage = function(msg){
 					if(!msg){ return }
@@ -2206,6 +2221,7 @@
 			}catch(e){}}
 
 			function reconnect(peer){
+				reconnectflag = true;
 				clearTimeout(peer.defer);
 				peer.defer = setTimeout(function(){
 					open(peer);
