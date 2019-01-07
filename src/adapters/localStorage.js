@@ -22,8 +22,14 @@ Gun.on('create', function(root){
 	var gap;
 	var empty = Gun.obj.empty, id, to, go;
 	// add re-sync command.
-
+	var lastsyncts = 0;
+	var online = false;
 	function sync(){
+		var now = Date.now();
+		if(now - lastsyncts < (opt.resync || 10000)){
+			return;
+		}
+		lastsyncts = now;
 		gap = Gun.obj.ify(store.getItem('gap/'+opt.prefix)) || {};
 		if(!empty(gap)){
 			var disk = Gun.obj.ify(store.getItem(opt.prefix)) || {}, send = {};
@@ -43,6 +49,10 @@ Gun.on('create', function(root){
 	root.on('resync', function(){
 		sync();
 	});
+
+	root.on('online', function(status){
+		online = status;
+	});	
 
 	root.on('out', function(msg){
 		if(msg.lS){ return }
@@ -82,6 +92,13 @@ Gun.on('create', function(root){
 		try{store.setItem('gap/'+opt.prefix, JSON.stringify(gap));
 		}catch(e){ Gun.log(err = e || "localStorage failure") }
 	}
+	var resync = function(){
+		if(online) {
+			sync();
+		}
+		setTimeout(resync, 30000);
+	}
+	resync();
 });
 
 Gun.on('create', function(root){

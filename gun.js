@@ -1798,8 +1798,15 @@
 			var gap;
 			var empty = Gun.obj.empty, id, to, go;
 			// add re-sync command.
+			var lastsyncts = 0;
+			var online = false;			
 
 			function sync(){
+				var now = Date.now();
+				if(now - lastsyncts < (opt.resync || 10000)){
+					return;
+				}
+				lastsyncts = now;				
 				gap = Gun.obj.ify(store.getItem('gap/'+opt.prefix)) || {};
 				if(!empty(gap)){
 					var disk = Gun.obj.ify(store.getItem(opt.prefix)) || {}, send = {};
@@ -1819,6 +1826,10 @@
 			root.on('resync', function(){
 				sync();
 			});
+
+			root.on('online', function(status){
+				online = status;
+			});	
 
 			root.on('out', function(msg){
 				if(msg.lS){ return }
@@ -1858,6 +1869,13 @@
 				try{store.setItem('gap/'+opt.prefix, JSON.stringify(gap));
 				}catch(e){ Gun.log(err = e || "localStorage failure") }
 			}
+			var resync = function(){
+				if(online) {
+					sync();
+				}
+				setTimeout(resync, 30000);
+			}
+			resync();			
 		});
 
 		Gun.on('create', function(root){
@@ -2209,8 +2227,9 @@
 				wire.onopen = function(){
 					opt.mesh.hi(peer);
 					if(reconnectflag) {
-						root.on('resync');
+						root.on('resync', {});
 					}
+					root.on('online', true);
 					reconnectflag = false;					
 				}
 				wire.onmessage = function(msg){
@@ -2222,6 +2241,7 @@
 
 			function reconnect(peer){
 				reconnectflag = true;
+				root.on('online', false);
 				clearTimeout(peer.defer);
 				peer.defer = setTimeout(function(){
 					open(peer);

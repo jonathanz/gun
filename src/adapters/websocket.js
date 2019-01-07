@@ -42,7 +42,7 @@ Gun.on('opt', function(root){
 			if(reconnectflag) {
 				root.on('resync');
 			}
-			reconnectflag = false;
+			reconnectflag = false;					
 		}
 		wire.onmessage = function(msg){
 			if(!msg){ return }
