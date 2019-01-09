@@ -40,9 +40,10 @@ Gun.on('opt', function(root){
 		wire.onopen = function(){
 			opt.mesh.hi(peer);
 			if(reconnectflag) {
-				root.on('resync');
+				root.on('resync', {});
 			}
-			reconnectflag = false;					
+			root.on('online', true);
+			reconnectflag = false;
 		}
 		wire.onmessage = function(msg){
 			if(!msg){ return }
@@ -53,6 +54,7 @@ Gun.on('opt', function(root){
 
 	function reconnect(peer){
 		reconnectflag = true;
+		root.on('online', false);
 		clearTimeout(peer.defer);
 		peer.defer = setTimeout(function(){
 			open(peer);

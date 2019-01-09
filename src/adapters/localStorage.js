@@ -23,13 +23,14 @@ Gun.on('create', function(root){
 	var empty = Gun.obj.empty, id, to, go;
 	// add re-sync command.
 	var lastsyncts = 0;
-	var online = false;
+	var online = false;			
+
 	function sync(){
 		var now = Date.now();
 		if(now - lastsyncts < (opt.resync || 10000)){
 			return;
 		}
-		lastsyncts = now;
+		lastsyncts = now;				
 		gap = Gun.obj.ify(store.getItem('gap/'+opt.prefix)) || {};
 		if(!empty(gap)){
 			var disk = Gun.obj.ify(store.getItem(opt.prefix)) || {}, send = {};
@@ -47,10 +48,19 @@ Gun.on('create', function(root){
 	sync();
 
 	root.on('resync', function(){
+		console.log('resync', Date.now());
+		var graph = root.graph;				
+		for(var itempath in graph) {
+			console.log('itempath', itempath);
+			var item = root.gun.get(itempath);
+			item._ && item._.ack && (item._.ack = 0, root.gun.get(itempath, function(){
+			}));
+		 }				
 		sync();
 	});
 
 	root.on('online', function(status){
+		console.log('online', status);
 		online = status;
 	});	
 
@@ -98,7 +108,7 @@ Gun.on('create', function(root){
 		}
 		setTimeout(resync, 30000);
 	}
-	resync();
+	resync();			
 });
 
 Gun.on('create', function(root){

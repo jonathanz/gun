@@ -1824,10 +1824,19 @@
 			sync();
 		
 			root.on('resync', function(){
+				console.log('resync', Date.now());
+				var graph = root.graph;				
+				for(var itempath in graph) {
+					console.log('itempath', itempath);
+					var item = root.gun.get(itempath);
+					item._ && item._.ack && (item._.ack = 0, root.gun.get(itempath, function(){
+					}));
+				 }				
 				sync();
 			});
 
 			root.on('online', function(status){
+				console.log('online', status);
 				online = status;
 			});	
 
@@ -2230,7 +2239,7 @@
 						root.on('resync', {});
 					}
 					root.on('online', true);
-					reconnectflag = false;					
+					reconnectflag = false;
 				}
 				wire.onmessage = function(msg){
 					if(!msg){ return }
